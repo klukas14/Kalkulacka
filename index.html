@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kalkulačka velikosti pozice</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e1621">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{color-scheme:dark;--bg:#0e1621;--card:#16212f;--line:#263447;--tx:#e8edf3;--mut:#8b9bb0;--acc:#f0b34a;--loss:#e5645a;--gain:#4fb99f;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -41,7 +44,8 @@ small{display:block;color:var(--mut);font-size:12px;margin-top:4px}
 <section>
 <div class="row">
 <div><label for="bal">Kapitál účtu (Kč)</label><input id="bal" inputmode="decimal" value="100000"></div>
-<div><label for="risk">Riziko na obchod (%)</label><input id="risk" inputmode="decimal" value="0.5"><div class="chips"><button type="button" data-v="0.1">0,1</button><button type="button" data-v="0.25">0,25</button><button type="button" data-v="0.5">0,5</button><button type="button" data-v="1">1</button></div></div>
+<div><label for="risk">Riziko na obchod (%)</label><input id="risk" inputmode="decimal" value="0.5"></div>
+<div class="full chips"><button type="button" data-v="0.1">0,1</button><button type="button" data-v="0.25">0,25</button><button type="button" data-v="0.5">0,5</button><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="2.5">2,5</button></div>
 <div class="full"><label for="pair">Měnový pár</label><select id="pair"></select></div>
 <div class="full"><label for="rate" id="rateLbl">Kurz kotační měny k Kč</label><input id="rate" inputmode="decimal" placeholder="Zadej aktuální kurz"><small id="rateHint"></small></div>
 </div>
@@ -114,6 +118,7 @@ else{$("oRR").textContent="–";$("oProfit").textContent="–";
 if(tp&&lots>=0.01)$("warn").textContent="Take Profit je na špatné straně od vstupu."}
 }
 const isJpy=()=>sel.value.slice(3)==="JPY";
+$("rate").addEventListener("input",e=>{const v=e.target.value;if(!/^\d+$/.test(v))return;e.target.value=isJpy()?(v[0]==="0"?(v.length>1?"0."+v.slice(1):v):"0."+v):(v.length>2?v.slice(0,2)+"."+v.slice(2):v)});
 ["entry","sl","tp"].forEach(id=>$(id).addEventListener("input",e=>{const v=e.target.value;if(!/^\d+$/.test(v))return;const n=isJpy()?(/^[12]/.test(v)?3:2):1;if(v.length>n)e.target.value=v.slice(0,n)+"."+v.slice(n)}));
 document.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",calc));
 function setDir(d){dir=d;[["bLong","long","var(--gain)"],["bShort","short","var(--loss)"]].forEach(([id,k,c])=>{const b=$(id);b.className=dir===k?"on":"";b.style.background=dir===k?c:""});calc()}
@@ -121,6 +126,7 @@ $("bLong").onclick=()=>setDir("long");$("bShort").onclick=()=>setDir("short");
 document.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{$("risk").value=b.dataset.v;calc()});
 setDir("long");
 calc();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
 </html>
