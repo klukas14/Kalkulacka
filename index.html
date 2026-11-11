@@ -77,7 +77,8 @@ small{display:block;color:var(--mut);font-size:12px;margin-top:4px}
 <script>
 const groups={
 "Majors":["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD"],
-"Cross páry":["EURGBP","EURJPY","EURCHF","EURAUD","EURCAD","EURNZD","GBPJPY","GBPCHF","GBPAUD","GBPCAD","GBPNZD","AUDJPY","AUDCHF","AUDCAD","AUDNZD","NZDJPY","NZDCHF","NZDCAD","CADJPY","CADCHF","CHFJPY"]};
+"Cross páry":["EURGBP","EURJPY","EURCHF","EURAUD","EURCAD","EURNZD","GBPJPY","GBPCHF","GBPAUD","GBPCAD","GBPNZD","AUDJPY","AUDCHF","AUDCAD","AUDNZD","NZDJPY","NZDCHF","NZDCAD","CADJPY","CADCHF","CHFJPY"],
+"Exotické páry":["USDMXN","USDZAR","USDTRY","USDPLN","USDHUF","USDCZK","USDNOK","USDSEK","USDDKK","USDSGD","USDHKD","USDCNH","EURPLN","EURHUF","EURCZK","EURNOK","EURSEK","EURDKK","EURTRY","EURMXN","EURZAR","GBPNOK","GBPSEK","GBPZAR","GBPPLN"]};
 const $=id=>document.getElementById(id);
 let dir="long";
 const sel=$("pair");
@@ -89,14 +90,16 @@ const fmt=(v,d=2)=>v.toLocaleString("cs-CZ",{minimumFractionDigits:d,maximumFrac
 function calc(){
 const pair=sel.value,q=pair.slice(3);
 $("rateLbl").textContent="Kurz "+q+"/CZK";
-const ph=q==="JPY"?["175.000","174.500","176.000"]:["1.08500","1.08200","1.09100"];["entry","sl","tp"].forEach((id,i)=>$(id).placeholder=ph[i]);
-$("rateHint").textContent="Kolik Kč stojí 1 "+q+(q==="JPY"?" (zhruba desetiny koruny)":"");
+const k=PI[pair]||1;const ph=q==="JPY"?["175.000","174.500","176.000"]:k===3?["330.000","329.000","332.000"]:k===2?["18.5000","18.4000","18.7000"]:["1.08500","1.08200","1.09100"];["entry","sl","tp"].forEach((id,i)=>$(id).placeholder=ph[i]);
+const z=q==="CZK",re=$("rate");
+$("rateHint").textContent=z?"Kotační měna je Kč, kurz není potřeba.":"Kolik Kč stojí 1 "+q+((q in RI&&RI[q]===0)?" (méně než 1 Kč, píš s nulou: 0153 → 0.153)":"");
+if(q!==lastQ){lastQ=q;re.disabled=z;re.value=z?"1":""}
 const bal=num("bal"),rp=num("risk"),rate=num("rate"),e=num("entry"),sl=num("sl"),tp=num("tp");
 const out=["lots","oRisk","oPip","oSl","oRR","oProfit"];
 const reset=m=>{out.forEach(i=>$(i).textContent="–");$("dir").textContent="";$("warn").textContent=m};
 if(!bal||!rp||!rate||!e||!sl){reset("Vyplň kapitál, riziko, kurz, vstup a Stop Loss.");return}
 if(dir==="long"?sl>=e:sl<=e){reset(dir==="long"?"U longu musí být Stop Loss pod vstupem.":"U shortu musí být Stop Loss nad vstupem.");return}
-const pip=q==="JPY"?0.01:0.0001;
+const pip=(q==="JPY"||q==="HUF")?0.01:q==="CZK"?0.001:0.0001;
 const slPips=Math.abs(e-sl)/pip;
 const pv=pip*100000*rate;            // Kč za 1 pip na 1 lot
 const riskKc=bal*rp/100;
@@ -117,9 +120,12 @@ $("oProfit").textContent="+"+fmt(lots*tpPips*pv)+" Kč"}
 else{$("oRR").textContent="–";$("oProfit").textContent="–";
 if(tp&&lots>=0.01)$("warn").textContent="Take Profit je na špatné straně od vstupu."}
 }
-const isJpy=()=>sel.value.slice(3)==="JPY";
-$("rate").addEventListener("input",e=>{const v=e.target.value;if(!/^\d+$/.test(v))return;e.target.value=isJpy()?(v[0]==="0"?(v.length>1?"0."+v.slice(1):v):"0."+v):(v.length>2?v.slice(0,2)+"."+v.slice(2):v)});
-["entry","sl","tp"].forEach(id=>$(id).addEventListener("input",e=>{const v=e.target.value;if(!/^\d+$/.test(v))return;const n=isJpy()?(/^[12]/.test(v)?3:2):1;if(v.length>n)e.target.value=v.slice(0,n)+"."+v.slice(n)}));
+let lastQ="";
+const RI={JPY:0,HUF:0,TRY:0,MXN:1,ZAR:1,NOK:1,SEK:1,DKK:1,PLN:1,HKD:1,CNH:1};
+const PI={USDMXN:2,USDZAR:2,USDTRY:2,USDHUF:3,EURHUF:3,USDCZK:2,EURCZK:2,EURTRY:2,EURMXN:2,EURZAR:2,GBPZAR:2,USDNOK:2,EURNOK:2,GBPNOK:2,EURSEK:2,GBPSEK:2};
+const pairInt=v=>{const p=sel.value;if(p.slice(3)==="JPY")return /^[12]/.test(v)?3:2;if(p==="USDSEK")return /^1/.test(v)?2:1;return PI[p]||1};
+$("rate").addEventListener("input",e=>{const v=e.target.value;if(!/^\d+$/.test(v))return;const q=sel.value.slice(3),n=q in RI?RI[q]:2;e.target.value=n===0?(v[0]==="0"?(v.length>1?"0."+v.slice(1):v):"0."+v):(v.length>n?v.slice(0,n)+"."+v.slice(n):v)});
+["entry","sl","tp"].forEach(id=>$(id).addEventListener("input",e=>{const v=e.target.value;if(!/^\d+$/.test(v))return;const n=pairInt(v);if(v.length>n)e.target.value=v.slice(0,n)+"."+v.slice(n)}));
 document.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",calc));
 function setDir(d){dir=d;[["bLong","long","var(--gain)"],["bShort","short","var(--loss)"]].forEach(([id,k,c])=>{const b=$(id);b.className=dir===k?"on":"";b.style.background=dir===k?c:""});calc()}
 $("bLong").onclick=()=>setDir("long");$("bShort").onclick=()=>setDir("short");
